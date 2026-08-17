@@ -1,17 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CSC
 {
     class Program
     {
+        private const string ServerHost = "irautox.ir";
+        private const int ServerPort = 7676;
+
         static void Main(string[] args)
         {
-            Client _Client = new Client();
-            _Client.Connect("127.0.0.1", 9339);
+            Console.Title = "Clash Of Drayvens Client";
+            Console.WriteLine($"Connecting to {ServerHost}:{ServerPort}...");
+
+            Client client = new Client();
+            client.Connect(ServerHost, ServerPort);
         }
     }
 }
