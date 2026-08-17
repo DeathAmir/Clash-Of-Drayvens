@@ -8,62 +8,50 @@ namespace CSP
 {
     internal class Proxy
     {
-        public const string hostname = "gamea.clashofclans.com";
-        public const int port = 9339;
+        // Legacy Android clients connect to TCP/9339. The proxy keeps that
+        // compatibility port and forwards traffic to the Drayvens server.
+        public const int listenPort = 9339;
+        public const string upstreamHost = "irautox.ir";
+        public const int upstreamPort = 7676;
+
         public static Stopwatch _Stopwatch = new Stopwatch();
 
         private static void Main()
         {
-            int GWL_EXSTYLE = -20;
-            int WS_EX_LAYERED = 0x80000;
-            uint LWA_ALPHA = 0x2;
-            IntPtr Handle = GetConsoleWindow();
-            SetWindowLong(Handle, GWL_EXSTYLE, (int)GetWindowLong(Handle, GWL_EXSTYLE) ^ WS_EX_LAYERED);
-            SetLayeredWindowAttributes(Handle, 0, 227, LWA_ALPHA);
+            const int GWL_EXSTYLE = -20;
+            const int WS_EX_LAYERED = 0x80000;
+            const uint LWA_ALPHA = 0x2;
+            IntPtr handle = GetConsoleWindow();
+            SetWindowLong(handle, GWL_EXSTYLE, (int)GetWindowLong(handle, GWL_EXSTYLE) ^ WS_EX_LAYERED);
+            SetLayeredWindowAttributes(handle, 0, 227, LWA_ALPHA);
 
-            Console.Title = $"Clash SL Proxy v{Assembly.GetExecutingAssembly().GetName().Version.ToString()}";
+            Console.Title = $"Clash Of Drayvens Gateway v{Assembly.GetExecutingAssembly().GetName().Version}";
 
             if (!Directory.Exists("Packets"))
-            {
                 Directory.CreateDirectory("Packets");
-            }
 
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(
-                @"
-╔═══╗╔═══╗╔═══╗╔╗╔═╗
-╚╗╔╗║║╔═╗║║╔═╗║║║║╔╝
-─║║║║║║─║║║╚═╝║║╚╝╝
-─║║║║║╚═╝║║╔╗╔╝║╔╗║
-╔╝╚╝║║╔═╗║║║║╚╗║║║╚╗
-╚═══╝╚╝─╚╝╚╝╚═╝╚╝╚═╝");
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.Write("          Clash SL");
+            Console.WriteLine("============================================================");
+            Console.WriteLine("                 CLASH OF DRAYVENS GATEWAY");
+            Console.WriteLine("============================================================");
             Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(" Proxy");
-            Console.ResetColor();
+            Console.WriteLine($"Legacy listen endpoint : 0.0.0.0:{listenPort}");
+            Console.WriteLine($"Drayvens upstream      : {upstreamHost}:{upstreamPort}");
+            Console.WriteLine("Based on the open-source Clash Of SL proxy.");
             Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.Write("[PROXY]");
-            Console.ResetColor();
-            Console.WriteLine("    -> You can find the source at www.github.com/skyprolk");
-            Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.Write("[PROXY]");
-            Console.ResetColor();
-            Console.WriteLine("    -> Clash SL Proxy is now starting...");
-            _Stopwatch.Start();
 
-            Console.WriteLine();
+            _Stopwatch.Start();
 
             try
             {
-                Server server = new Server(port);
+                Server server = new Server(listenPort);
                 server.StartServer();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(e);
+                Console.ResetColor();
             }
         }
 
