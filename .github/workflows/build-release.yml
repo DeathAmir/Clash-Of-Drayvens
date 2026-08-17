@@ -1,0 +1,147 @@
+name: Build and Release Clash Of Drayvens
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore server packages
+        shell: pwsh
+        run: nuget restore "Clash SL Server.sln" -NonInteractive
+
+      - name: Restore gateway packages
+        shell: pwsh
+        run: nuget restore "Clash SL Proxy.sln" -NonInteractive
+
+      - name: Restore test client packages
+        shell: pwsh
+        run: nuget restore "Clash SL Client.sln" -NonInteractive
+
+      - name: Restore optional tool packages
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          nuget restore "Clash SL Client Patcher.sln" -NonInteractive
+          nuget restore "Clash SL File Decryptor.sln" -NonInteractive
+          nuget restore "Clash SL SC Editor.sln" -NonInteractive
+
+      - name: Build server
+        shell: pwsh
+        run: msbuild "Clash SL Server.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform="Any CPU" /p:RestorePackages=false
+
+      - name: Build gateway
+        shell: pwsh
+        run: msbuild "Clash SL Proxy.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform="Any CPU" /p:RestorePackages=false
+
+      - name: Build test client
+        shell: pwsh
+        run: msbuild "Clash SL Client.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform="Any CPU" /p:RestorePackages=false
+
+      - name: Build client patcher
+        shell: pwsh
+        continue-on-error: true
+        run: msbuild "Clash SL Client Patcher.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform="Any CPU" /p:RestorePackages=false
+
+      - name: Build file decryptor
+        shell: pwsh
+        continue-on-error: true
+        run: msbuild "Clash SL File Decryptor.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform="Any CPU" /p:RestorePackages=false
+
+      - name: Build SC editor
+        shell: pwsh
+        continue-on-error: true
+        run: msbuild "Clash SL SC Editor.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform="Any CPU" /p:RestorePackages=false
+
+      - name: Assemble runtime bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $PWD 'dist\Clash-Of-Drayvens'
+          $server = Join-Path $root 'Server'
+          $gateway = Join-Path $root 'Gateway'
+          $client = Join-Path $root 'TestClient'
+          $tools = Join-Path $root 'Tools'
+          New-Item -ItemType Directory -Force -Path $server,$gateway,$client,$tools | Out-Null
+
+          Copy-Item 'Clash SL Server\bin\Release\*' $server -Recurse -Force
+          Copy-Item 'Clash SL Server\config.css' (Join-Path $server 'config.css') -Force
+          Copy-Item 'Clash SL Proxy\bin\Release\*' $gateway -Recurse -Force
+          Copy-Item 'Clash SL Client\bin\Release\*' $client -Recurse -Force
+
+          $serverExe = Join-Path $server 'Clash SL Server.exe'
+          if (Test-Path $serverExe) { Rename-Item $serverExe 'ClashOfDrayvens.Server.exe' -Force }
+          $gatewayExe = Join-Path $gateway 'Clash SL Proxy.exe'
+          if (Test-Path $gatewayExe) { Rename-Item $gatewayExe 'ClashOfDrayvens.Gateway.exe' -Force }
+          $clientExe = Join-Path $client 'Clash SL Client.exe'
+          if (Test-Path $clientExe) { Rename-Item $clientExe 'ClashOfDrayvens.TestClient.exe' -Force }
+
+          $optional = @(
+            @{ Path='Clash SL Client Patcher\bin\Release'; Name='ClientPatcher' },
+            @{ Path='Clash SL File Decryptor\bin\Release'; Name='FileDecryptor' },
+            @{ Path='Clash SL SC Editor\bin\Release'; Name='SCEditor' }
+          )
+          foreach ($item in $optional) {
+            if (Test-Path $item.Path) {
+              $target = Join-Path $tools $item.Name
+              New-Item -ItemType Directory -Force -Path $target | Out-Null
+              Copy-Item (Join-Path $item.Path '*') $target -Recurse -Force
+            }
+          }
+
+          @'
+          CLASH OF DRAYVENS - WINDOWS VPS
+
+          Game server TCP: 7676
+          Legacy Android gateway TCP: 9339
+          Production host: irautox.ir
+
+          Runtime order:
+          1. Start MySQL/MariaDB and import/configure cssdb.
+          2. Start Redis on 127.0.0.1:6379.
+          3. Start Server\ClashOfDrayvens.Server.exe.
+          4. Start Gateway\ClashOfDrayvens.Gateway.exe.
+          5. Allow inbound TCP 7676 and 9339 in the VPS firewall.
+
+          The legacy Android client expects 9339. Gateway forwards it to irautox.ir:7676.
+          '@ | Set-Content (Join-Path $root 'README-RUN.txt') -Encoding UTF8
+
+          Compress-Archive -Path "$root\*" -DestinationPath 'dist\Clash-Of-Drayvens-Windows.zip' -Force
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Clash-Of-Drayvens-Windows
+          path: dist/Clash-Of-Drayvens-Windows.zip
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: drayvens-build-${{ github.run_number }}
+          name: Clash Of Drayvens Build ${{ github.run_number }}
+          body: |
+            Automated Windows build of Clash Of Drayvens.
+
+            - Game server: TCP 7676
+            - Legacy compatibility gateway: TCP 9339 -> irautox.ir:7676
+            - Includes server, gateway, test client and successfully built tools.
+            - Android proprietary client APK/assets are not included.
+          files: dist/Clash-Of-Drayvens-Windows.zip
+          fail_on_unmatched_files: true
