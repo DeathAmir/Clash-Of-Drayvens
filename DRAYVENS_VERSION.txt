@@ -1,0 +1,5 @@
+Clash Of Drayvens
+Server core: 0.8.0.0
+Protocol client: 8.709.16
+Production game endpoint: irautox.ir:7676
+Legacy Android compatibility gateway: TCP 9339
