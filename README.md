@@ -1,58 +1,88 @@
-# Clash Of SL (CSS)
-Clash of SL Server (CSS) that is the fully free open source clash of clans private server and it is not affiliated to "Supercell , Oy " .
+# Clash Of Drayvens
 
-![cos_logo](https://github.com/skyprolk/Clash-Of-SL/blob/main/cos_logo.png)
+Clash Of Drayvens is a maintained fork of the open-source **Clash Of SL** private-server project, configured for the Drayvens server infrastructure.
 
-## Screenshots
-These screenshots are taken from the actual physical Android mobile phone.
+> This repository is not affiliated with or endorsed by Supercell Oy. The server/tooling code is maintained here under the repository's existing license. Proprietary Clash of Clans client code, artwork, audio and trademarks are **not** redistributed by this repository or its releases.
 
-![screenshot_1](https://fiverr-res.cloudinary.com/images/t_main1,q_auto,f_auto,q_auto,f_auto/gigs/360231709/original/38fef6a45214520a3e0edf9c40f155db40cb338b/make-a-clash-of-clans-private-server.jpg)
+## Production endpoint
 
-![screenshot_2](https://fiverr-res.cloudinary.com/images/t_main1,q_auto,f_auto,q_auto,f_auto/gigs2/360231709/original/538b6d506f81c95995a304e566f9697e1441e5c6/make-a-clash-of-clans-private-server.jpg)
+- Drayvens game server: `irautox.ir:7676` (TCP)
+- Legacy Android compatibility gateway: `TCP 9339 -> irautox.ir:7676`
+- Supported legacy protocol/client version: `8.709.16`
 
-![screenshot_3](https://fiverr-res.cloudinary.com/images/t_main1,q_auto,f_auto,q_auto,f_auto/gigs3/360231709/original/9de7f252a2b240eb495a318a4309603d211041cd/make-a-clash-of-clans-private-server.jpg)
+`Clash SL Server/config.css` is preconfigured to listen on TCP `7676`.
 
-## Includes
-Clash of SL includes tools for various purposes.
-- **Clash SL Client (CSC)** - The client-side application for connecting to the Clash SL server. Players use this to interact with the game world.
+## Components
 
-- **Clash SL Client Patcher (CSCP)** - A tool that allows users to modify or patch the Clash SL client for custom features or enhancements.
-  
-- **Clash SL File Decryptor (CSFD)** - A utility that decrypts specific game files, enabling access to their contents.
-  
-- **Clash SL Proxy (CSP)** - A proxy server that facilitates communication between the client and the server, enhancing performance and security.
-  
-- **Clash SL SC Editor (CSSCE)** - An editor for creating and modifying in-game content, such as custom scenarios or maps.
-  
-- **Clash SL Server (CSS)** - This is a fully free and open-source Clash of Clans private server. It operates independently and is not affiliated with “Supercell, Oy.” The CSS provides an alternative gaming experience for Clash of Clans enthusiasts.
+- **Server** — game server, MySQL persistence, Redis cache and game protocol.
+- **Gateway / Proxy** — listens on legacy TCP `9339` and forwards to `irautox.ir:7676`.
+- **Test Client** — small .NET protocol client preconfigured for `irautox.ir:7676`.
+- **Client Patcher** — patches the supported Android client's `libg.so` public key for private-server compatibility.
+- **File Decryptor** — utility for supported game resource files.
+- **SC Editor** — utility for supported SC resource files.
 
-## Videos
-Would you like to watch some videos about Clash of SL?
-- [Clash of SL Preview](https://youtu.be/VBjUW7VXnoE)
-- [Clash of SL Gameplay](https://www.mediafire.com/file/nzks2cwsbk0btfn/Gameplay_Video_-_480p.mp4/file)
+## Windows VPS requirements
 
-## How?
-You can create a coc private server using Clash of SL by following the instructions included in the videos below.
-1. [Part #1 - Gameplay](https://youtu.be/z_B_NoJkjfU?si=Qaeo7GQZQOCipjKP)
-2. [Part #2 - WiFi Local Server](https://youtu.be/jQA26Xg0vyE?si=LiAcuc27VoGAuG2R)
-3. [Part #3 - Internet Over Public Server](https://youtu.be/oW-jivCkq6Q?si=YeVvaiep7h3pXNVe)
+- Windows Server x64
+- .NET Framework 4.8 (server itself targets .NET Framework 4.6.2)
+- MySQL/MariaDB with database `cssdb`
+- Redis on `127.0.0.1:6379`
+- Inbound TCP ports `7676` and `9339`
 
-## Hire Me
-Can't you make a coc private server by watching the above videos? Do not worry! I can do that for you :)
-- [CLICK HERE](https://www.fiverr.com/s/DbmmEo) to hire me on Fiverr.
+The default database settings are in `Clash SL Server/config.css`:
 
-## Useful Links
-You may find the following links useful!
-- [Clash Of SL 8.709.1v APK](https://www.mediafire.com/download/9elnxhv7mjowed2)
+```text
+Redis: 127.0.0.1:6379
+MySQL: 127.0.0.1:3306
+Database: cssdb
+User: root
+```
 
-- [Hosts GO Apk](https://play.google.com/store/apps/details?id=dns.hosts.server.change)
+Set a real MySQL password before exposing the VPS publicly.
 
-- [No-IP Software](https://www.noip.com/download?page=win)
+## Runtime order
 
-- [Apk Easy Tool Software](https://forum.xda-developers.com/t/tool-windows-apk-easy-tool-v1-59-2-2021-04-03.3333960/)
+1. Start MySQL/MariaDB.
+2. Start Redis.
+3. Start `ClashOfDrayvens.Server.exe` (game server on `7676`).
+4. Start `ClashOfDrayvens.Gateway.exe` (legacy compatibility listener on `9339`).
+5. Point the compatible Android client's `gamea.clashofclans.com` hostname to the VPS IP for private testing.
 
-- [Wamp Server](https://www.wampserver.com/en/)
+The gateway exists because the supported legacy Android client expects TCP `9339`; it forwards that connection to the Drayvens server on `7676`.
 
-- [Redis Server](https://redis.io/download)
+## Android client compatibility testing
 
-- [Latest CSS Release](https://github.com/skyprolk/Clash-Of-SL/releases/)
+The upstream Clash Of SL README references a **Clash Of SL 8.709.1** compatibility APK. This fork does not mirror or redistribute that proprietary APK. For private compatibility testing, obtain the client only from a source you are legally allowed to use.
+
+The included client patcher works on `libg.so`:
+
+1. Decode your legally obtained compatible APK with Apktool / APK Easy Tool.
+2. Copy `lib/armeabi-v7a/libg.so` (or the matching ABI path in that APK) into the patcher's `Original` directory.
+3. Run the Client Patcher and approve replacing the public key.
+4. Copy the resulting `Patched/libg.so` back into the decoded APK.
+5. For a private test build, you may change the Android app label/icon to **Clash Of Drayvens**.
+6. Rebuild the APK and sign it with your own test keystore.
+7. Redirect `gamea.clashofclans.com` to your VPS IP. The gateway handles `9339 -> 7676`.
+
+### Public app-store release
+
+Do **not** publish a renamed Supercell APK/assets as Clash Of Drayvens. A public Play Store / Bazaar / Myket release needs an original client and original/licensed art, audio, UI and branding. The open-source server can be reused as a protocol/backend reference where its license permits it.
+
+## Build and releases
+
+GitHub Actions builds the Windows server, gateway, test client and available tools. Successful pushes to `main` create a versioned GitHub Release containing a ZIP runtime bundle.
+
+The release bundle is organized as:
+
+```text
+Clash-Of-Drayvens/
+  Server/
+  Gateway/
+  TestClient/
+  Tools/
+  README-RUN.txt
+```
+
+## Credits
+
+Clash Of Drayvens is based on the Clash Of SL open-source project by its original contributors. Original attribution and repository license remain applicable to inherited code.
