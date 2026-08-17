@@ -1,16 +1,11 @@
 using System;
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using CSS.Core;
-using CSS.Core.Checker;
-using CSS.Core.Network;
 using CSS.Core.Settings;
-using CSS.Core.Threading;
-using CSS.Core.Web;
 using CSS.Helpers;
-using CSS.WebAPI;
+using CSS.Core.Web;
 using static CSS.Core.Logger;
 
 namespace CSS
@@ -18,163 +13,105 @@ namespace CSS
     internal class Program
     {
         internal static int OP = 0;
-        internal static string Title = $"Clash SL Server v{Constants.Version} Build: {Constants.Build} - ©CSS | Online Players: ";
+        internal static string Title = $"Clash Of Drayvens Server v{Constants.Version} Build {Constants.Build} | Online Players: ";
         public static Stopwatch _Stopwatch = new Stopwatch();
         public static string Version { get; set; }
 
         internal static void Main()
         {
-            int GWL_EXSTYLE = -20;
-            int WS_EX_LAYERED = 0x80000;
-            uint LWA_ALPHA = 0x2;
-            IntPtr Handle = GetConsoleWindow();
-            SetWindowLong(Handle, GWL_EXSTYLE, (int)GetWindowLong(Handle, GWL_EXSTYLE) ^ WS_EX_LAYERED);
-            Console.SetWindowSize(92,32);
+            const int GWL_EXSTYLE = -20;
+            const int WS_EX_LAYERED = 0x80000;
+            const uint LWA_ALPHA = 0x2;
+
+            IntPtr handle = GetConsoleWindow();
+            SetWindowLong(handle, GWL_EXSTYLE, (int)GetWindowLong(handle, GWL_EXSTYLE) ^ WS_EX_LAYERED);
+
+            try
+            {
+                Console.SetWindowSize(92, 32);
+            }
+            catch
+            {
+                // Some hosts do not allow resizing the console. Startup should continue.
+            }
 
             if (Utils.ParseConfigBoolean("Animation"))
             {
-
                 new Thread(() =>
                 {
                     for (int i = 20; i < 227; i++)
                     {
-                        if (i < 100)
-                        {
-                            SetLayeredWindowAttributes(Handle, 0, (byte)i, LWA_ALPHA);
-                            Thread.Sleep(5);
-                        }
-                        else
-                        {
-                            SetLayeredWindowAttributes(Handle, 0, (byte)i, LWA_ALPHA);
-                            Thread.Sleep(15);
-                        }
+                        SetLayeredWindowAttributes(handle, 0, (byte)i, LWA_ALPHA);
+                        Thread.Sleep(i < 100 ? 5 : 15);
                     }
                 }).Start();
             }
             else
             {
-                SetLayeredWindowAttributes(Handle, 0, 227, LWA_ALPHA);
+                SetLayeredWindowAttributes(handle, 0, 227, LWA_ALPHA);
             }
 
-            if (Constants.LicensePlanID == 3)
-            {
-                Console.Title = Title + OP;
-            }
-            else if(Constants.LicensePlanID == 2)
-            {
-                Console.Title = Title + OP + "/700";
-            }
-            else if (Constants.LicensePlanID == 1)
-            {
-                Console.Title = Title + OP + "/350";
-            }
-
+            UpdateTitle();
             Say();
 
-            Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine(
-                @"
-╔═══╗╔═══╗╔═══╗╔╗╔═╗
-╚╗╔╗║║╔═╗║║╔═╗║║║║╔╝
-─║║║║║║─║║║╚═╝║║╚╝╝
-─║║║║║╚═╝║║╔╗╔╝║╔╗║
-╔╝╚╝║║╔═╗║║║║╚╗║║║╚╗
-╚═══╝╚╝─╚╝╚╝╚═╝╚╝╚═╝");
-
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Logger.WriteCenter("============================================================");
+            Logger.WriteCenter("CLASH OF DRAYVENS");
+            Logger.WriteCenter("Private Server Core");
+            Logger.WriteCenter("Endpoint: irautox.ir:7676");
+            Logger.WriteCenter("============================================================");
             Console.ResetColor();
 
-            Console.ForegroundColor = ConsoleColor.Blue;
-            Logger.WriteCenter("+-------------------------------------------------------+");
-            Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.Green;
-            Logger.WriteCenter("|This program is made by the Sky Production Development Team.|");
-            Logger.WriteCenter("|    CSS is not affiliated to \"Supercell, Oy\".    |");
-            Logger.WriteCenter("|        This program is copyrighted worldwide.         |");
-            Logger.WriteCenter("|         Modified by DARK to Ensure Functionality      |");
-            Console.ForegroundColor = ConsoleColor.Blue;
-            Logger.WriteCenter("+-------------------------------------------------------+");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Logger.WriteCenter("Based on the open-source Clash Of SL server project.");
+            Logger.WriteCenter("Not affiliated with or endorsed by Supercell Oy.");
             Console.ResetColor();
 
             Say();
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.Write("[DRAYVENS] ");
 
-            Console.ForegroundColor = ConsoleColor.Blue;
-            Console.Write("[CSS]    ");
             Version = VersionChecker.GetVersionString();
-
             _Stopwatch.Start();
 
             if (Version == Constants.Version)
             {
-                Console.WriteLine($"> CSS is up-to-date: {Constants.Version}");
+                Console.WriteLine($"> Core ready: {Constants.Version}");
                 Console.ResetColor();
                 Console.ForegroundColor = ConsoleColor.Green;
-                Say("Preparing Server...\n");
+                Say("Preparing Clash Of Drayvens server...\n");
                 Resources.Initialize();
-            }
-            else if (Version == "Error")
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("> An Error occured when requesting the Version number.");
-                Console.WriteLine();
-                Logger.Say("Aborting...");
-                Thread.Sleep(5000);
-                Environment.Exit(0);
             }
             else
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"> CSS is not up-to-date! New Version: {Version}. Aborting...");
-                Thread.Sleep(5000);
-                Environment.Exit(0);
+                Console.WriteLine("> Version validation failed. Aborting startup.");
+                Thread.Sleep(3000);
+                Environment.Exit(1);
             }
         }
 
         public static void UpdateTitle()
         {
-            if (Constants.LicensePlanID == 3)
-            {
-                Console.Title = Title + OP;
-            }
-            else if (Constants.LicensePlanID == 2)
-            {
+            if (Constants.LicensePlanID == 2)
                 Console.Title = Title + OP + "/700";
-            }
             else if (Constants.LicensePlanID == 1)
-            {
                 Console.Title = Title + OP + "/350";
-            }
+            else
+                Console.Title = Title + OP;
         }
 
         public static void TitleU()
         {
-            if (Constants.LicensePlanID == 3)
-            {
-                Console.Title = Title + ++OP;
-            }
-            else if(Constants.LicensePlanID == 2)
-            {
-                Console.Title = Title + ++OP + "/700";
-            }
-            else if (Constants.LicensePlanID == 1)
-            {
-                Console.Title = Title + ++OP + "/350";
-            }
+            ++OP;
+            UpdateTitle();
         }
 
         public static void TitleD()
         {
-            if (Constants.LicensePlanID == 3)
-            {
-                Console.Title = Title + --OP;
-            }
-            else if(Constants.LicensePlanID == 2)
-            {
-                Console.Title = Title + --OP + "/700";
-            }
-            else if(Constants.LicensePlanID == 1)
-            {
-                Console.Title = Title + --OP + "/350";
-            }
+            if (OP > 0)
+                --OP;
+            UpdateTitle();
         }
 
         [DllImport("user32.dll")]
